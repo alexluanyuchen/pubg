@@ -1,56 +1,556 @@
-<!doctype html>
+
+<!DOCTYPE html>
 <html lang="zh-CN">
 <head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width,initial-scale=1">
-  <meta name="theme-color" content="#101820">
-  <title>BattleRoyale 3D Pro — PC</title>
-  <link rel="stylesheet" href="./css/style.css">
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>BattleRoyale 3D Pro</title>
+<style>
+*{box-sizing:border-box}
+body{margin:0;overflow:hidden;background:#080d16;color:white;font-family:Arial,sans-serif}
+#game{position:fixed;inset:0}
+canvas{display:block}
+#hud{position:fixed;inset:0;pointer-events:none}
+.panel{background:rgba(5,12,22,.78);border:1px solid #496078;padding:12px 16px;border-radius:10px;backdrop-filter:blur(8px)}
+#top{position:absolute;top:15px;left:15px;right:15px;display:flex;justify-content:space-between;gap:10px}
+#stats{display:flex;gap:10px;flex-wrap:wrap}
+#health{color:#51ef9c}
+#center{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);font-size:25px;color:white;text-shadow:0 0 8px #00cfff}
+#bottom{position:absolute;bottom:20px;left:50%;transform:translateX(-50%);text-align:center}
+#message{position:absolute;top:25%;left:50%;transform:translateX(-50%);font-size:20px;color:#8ceaff}
+#overlay{position:fixed;inset:0;background:linear-gradient(135deg,rgba(3,10,20,.96),rgba(5,28,48,.92));display:flex;align-items:center;justify-content:center;z-index:5}
+#menu{width:min(520px,90%);padding:35px;background:rgba(10,22,38,.95);border:1px solid #47728f;border-radius:18px;text-align:center;box-shadow:0 0 60px #007ca044}
+h1{font-size:35px;margin:0 0 8px;color:#78eaff}
+.sub{color:#a9c3d5;line-height:1.8}
+button{background:linear-gradient(90deg,#087eb8,#00b9c9);border:0;color:white;padding:15px 32px;font-size:18px;font-weight:bold;border-radius:9px;cursor:pointer;margin-top:18px}
+button:hover{filter:brightness(1.2)}
+#loading{color:#8ceaff;font-size:13px;margin-top:12px}
+#hitmarker{position:absolute;left:50%;top:50%;font-size:32px;color:#70faff;display:none}
+</style>
 </head>
 <body>
-  <div id="game" aria-label="3D 游戏场景"></div>
+<div id="game"></div>
 
-  <div id="hud">
-    <header class="topbar">
-      <div class="brand">BATTLE ROYALE <span>3D PRO</span></div>
-      <div class="mode">PC EDITION · SOLO TRAINING</div>
-      <div class="zone">安全区收缩 <b id="zone">180</b>s</div>
-    </header>
-
-    <div id="crosshair">+</div>
-    <div class="minimap"><div class="map-title">TACTICAL MAP</div><canvas id="mapCanvas" width="160" height="160"></canvas></div>
-
-    <div class="weapon">
-      <div class="weapon-name">PULSE RIFLE <span id="status">READY</span></div>
-      <div class="ammo"><b id="ammo">30</b><span> / </span><span id="reserve">120</span></div>
-      <div class="weapon-note">TRAINING EQUIPMENT</div>
+<div id="hud">
+  <div id="top">
+    <div class="panel">
+      <b>BR 3D PRO</b><br>
+      <span id="status">等待开始</span>
     </div>
-
-    <footer class="bottom-hud">
-      <div class="vitals">
-        <div class="stat-line"><span>生命值</span><b id="hp">100</b></div>
-        <div class="bar"><i id="hpbar"></i></div>
-        <div class="stat-line armor-line"><span>护甲</span><b id="armor">50</b></div>
-        <div class="bar armor-bar"><i id="armorbar"></i></div>
-      </div>
-      <div class="controls">WASD 移动　SHIFT 奔跑　SPACE 跳跃　C 蹲下<br>鼠标左键发射　右键瞄准　R 换弹　E 互动　ESC 释放鼠标</div>
-      <div class="alive">存活人数 <b id="alive">7</b></div>
-    </footer>
-    <div id="toast" role="status"></div>
+    <div id="stats">
+      <div class="panel">生命值：<b id="health">100</b></div>
+      <div class="panel">得分：<b id="score">0</b></div>
+      <div class="panel">剩余目标：<b id="remaining">8</b></div>
+      <div class="panel">时间：<b id="time">00:00</b></div>
+    </div>
   </div>
-
-  <div id="start">
-    <section class="start-card">
-      <div class="eyebrow">TACTICAL SURVIVAL SIMULATION</div>
-      <h1>BATTLE ROYALE<br><em>3D PRO</em></h1>
-      <p id="intro">电脑版 · 第一人称 · 单机 AI 训练场</p>
-      <div class="feature-row"><span>REAL-TIME 3D</span><span>AI OPPONENTS</span><span>SAFE ZONE</span></div>
-      <button id="play" type="button">进入战场</button>
-      <div class="start-help">建议使用最新版 Chrome 或 Edge，并保持联网以加载 Three.js。</div>
-      <div id="loadError" class="load-error" hidden></div>
-    </section>
+  <div id="center">+</div>
+  <div id="hitmarker">✦</div>
+  <div id="message"></div>
+  <div id="bottom" class="panel">
+    WASD 移动　|　鼠标观察　|　点击发射能量弹　|　空格跳跃　|　ESC 暂停
   </div>
+</div>
 
-  <script type="module" src="./src/main.js"></script>
+<div id="overlay">
+  <div id="menu">
+    <h1> BATTLE ROYALE </h1>
+    <div style="color:#6edfff;font-size:14px;letter-spacing:5px">3D PRO EDITION</div>
+    <p class="sub">
+      进入开放式 3D 战场。<br>
+      寻找无人机目标，躲避危险区域，争取获得最高分数。
+    </p >
+    <button id="start">开始游戏</button>
+    <div id="loading">正在准备 3D 引擎……</div>
+  </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/0.128.0/three.min.js"></script>
+<script>
+(()=>{
+"use strict";
+
+const $=id=>document.getElementById(id);
+const game=$("game");
+
+if(!window.THREE){
+  $("loading").textContent="3D 引擎加载失败，请检查网络或 CDN 访问。";
+  return;
+}
+
+let scene,camera,renderer,clock;
+let started=false,paused=false;
+let health=100,score=0,elapsed=0;
+let yaw=0,pitch=0;
+let velocityY=0;
+let onGround=true;
+let zoneRadius=95;
+let lastShot=0;
+const keys={};
+const targets=[];
+const projectiles=[];
+const obstacles=[];
+const worldSize=220;
+
+function rand(a,b){return a+Math.random()*(b-a)}
+
+function makeMat(color,roughness=.8){
+ return new THREE.MeshStandardMaterial({color,roughness});
+}
+
+function box(x,y,z,sx,sy,sz,color){
+ const m=new THREE.Mesh(
+  new THREE.BoxGeometry(sx,sy,sz),
+  makeMat(color)
+ );
+ m.position.set(x,y,z);
+ scene.add(m);
+ obstacles.push(m);
+ return m;
+}
+
+function createTree(x,z){
+ const trunk=new THREE.Mesh(
+  new THREE.CylinderGeometry(.35,.5,3,7),
+  makeMat(0x63452c)
+ );
+ trunk.position.set(x,1.5,z);
+ scene.add(trunk);
+
+ const leaves=new THREE.Mesh(
+  new THREE.ConeGeometry(2.5,7,8),
+  makeMat(0x176b46)
+ );
+ leaves.position.set(x,6,z);
+ scene.add(leaves);
+}
+
+function createBuilding(x,z){
+ const w=rand(7,12),h=rand(5,10),d=rand(7,12);
+ box(x,h/2,z,w,h,d,0x647587);
+ box(x,h+.25,z,w+.5,.5,d+.5,0x293c50);
+
+ for(let y=2;y<h-1;y+=2.5){
+  for(let side of [-1,1]){
+   const win=new THREE.Mesh(
+    new THREE.BoxGeometry(.12,1.1,1.3),
+    new THREE.MeshStandardMaterial({
+     color:0x54d9ed,
+     emissive:0x12516a
+    })
+   );
+   win.position.set(x+side*(w/2+.07),y,z);
+   scene.add(win);
+  }
+ }
+}
+
+function createDrone(index){
+ const group=new THREE.Group();
+ const body=new THREE.Mesh(
+  new THREE.OctahedronGeometry(1.25,1),
+  new THREE.MeshStandardMaterial({
+   color:0x283d57,
+   metalness:.7,
+   roughness:.25,
+   emissive:0x09283c
+  })
+ );
+ group.add(body);
+
+ const core=new THREE.Mesh(
+  new THREE.SphereGeometry(.35,16,16),
+  new THREE.MeshBasicMaterial({color:0x00eaff})
+ );
+ group.add(core);
+
+ for(let i=0;i<4;i++){
+  const angle=i*Math.PI/2;
+  const arm=new THREE.Mesh(
+   new THREE.BoxGeometry(1.5,.12,.2),
+   makeMat(0x8ba8bb)
+  );
+  arm.position.set(Math.cos(angle)*1.2,0,Math.sin(angle)*1.2);
+  arm.rotation.y=-angle;
+  group.add(arm);
+ }
+ group.position.set(rand(-65,65),rand(3,10),rand(-65,65));
+ group.userData={
+  alive:true,
+  phase:rand(0,6),
+  speed:rand(2,4),
+  baseY:group.position.y
+ };
+ scene.add(group);
+ targets.push(group);
+}
+
+function init(){
+ scene=new THREE.Scene();
+ scene.background=new THREE.Color(0x8bc9e7);
+ scene.fog=new THREE.Fog(0x8bc9e7,90,220);
+
+ camera=new THREE.PerspectiveCamera(
+  75,window.innerWidth/window.innerHeight,.1,500
+ );
+ camera.position.set(0,2,12);
+
+ renderer=new THREE.WebGLRenderer({
+  antialias:true,
+  powerPreference:"high-performance"
+ });
+ renderer.setPixelRatio(Math.min(window.devicePixelRatio,1.8));
+ renderer.setSize(window.innerWidth,window.innerHeight);
+ renderer.shadowMap.enabled=true;
+ renderer.shadowMap.type=THREE.PCFSoftShadowMap;
+ renderer.outputEncoding=THREE.sRGBEncoding;
+ game.appendChild(renderer.domElement);
+
+ clock=new THREE.Clock();
+
+ const hemi=new THREE.HemisphereLight(0xe4f7ff,0x536344,1.7);
+ scene.add(hemi);
+
+ const sun=new THREE.DirectionalLight(0xffffff,2);
+ sun.position.set(50,90,40);
+ sun.castShadow=true;
+ sun.shadow.mapSize.set(1024,1024);
+ scene.add(sun);
+
+ const ground=new THREE.Mesh(
+  new THREE.PlaneGeometry(400,400),
+  makeMat(0x587b48)
+ );
+ ground.rotation.x=-Math.PI/2;
+ ground.receiveShadow=true;
+ scene.add(ground);
+
+ // 地面网格
+ const grid=new THREE.GridHelper(220,55,0x73956b,0x66875f);
+ grid.position.y=.025;
+ scene.add(grid);
+
+ // 远处山丘
+ for(let i=0;i<30;i++){
+  const mountain=new THREE.Mesh(
+   new THREE.ConeGeometry(rand(8,20),rand(15,35),6),
+   makeMat(0x667f79)
+  );
+  const a=rand(0,Math.PI*2);
+  const r=rand(120,175);
+  mountain.position.set(Math.cos(a)*r,8,Math.sin(a)*r);
+  scene.add(mountain);
+ }
+
+ // 树林
+ for(let i=0;i<110;i++){
+  const x=rand(-100,100),z=rand(-100,100);
+  if(Math.hypot(x,z)<18)continue;
+  createTree(x,z);
+ }
+
+ // 建筑
+ createBuilding(-22,-25);
+ createBuilding(25,-35);
+ createBuilding(36,24);
+ createBuilding(-40,30);
+ createBuilding(0,-55);
+
+ // 道路
+ const road=new THREE.Mesh(
+  new THREE.PlaneGeometry(18,220),
+  makeMat(0x454b50)
+ );
+ road.rotation.x=-Math.PI/2;
+ road.position.y=.04;
+ scene.add(road);
+
+ // 安全区边界
+ const ringGeo=new THREE.RingGeometry(.96,1,128);
+ const ringMat=new THREE.MeshBasicMaterial({
+  color:0x00eaff,
+  side:THREE.DoubleSide,
+  transparent:true,
+  opacity:.65
+ });
+ const ring=new THREE.Mesh(ringGeo,ringMat);
+ ring.rotation.x=-Math.PI/2;
+ ring.position.y=.12;
+ ring.scale.set(zoneRadius,zoneRadius,1);
+ scene.add(ring);
+ window.zoneRing=ring;
+
+ for(let i=0;i<8;i++)createDrone(i);
+
+ // 装饰光柱
+ for(let i=0;i<12;i++){
+  const p=new THREE.Mesh(
+   new THREE.CylinderGeometry(.12,.12,rand(2,5),8),
+   new THREE.MeshBasicMaterial({
+    color:0x00d9ff,
+    transparent:true,
+    opacity:.35
+   })
+  );
+  p.position.set(rand(-85,85),2,rand(-85,85));
+  scene.add(p);
+ }
+
+ window.addEventListener("resize",resize);
+}
+
+function resize(){
+ if(!renderer)return;
+ camera.aspect=window.innerWidth/window.innerHeight;
+ camera.updateProjectionMatrix();
+ renderer.setSize(window.innerWidth,window.innerHeight);
+}
+
+function updateCamera(){
+ camera.rotation.order="YXZ";
+ camera.rotation.y=yaw;
+ camera.rotation.x=pitch;
+}
+
+function startGame(){
+ if(started)return;
+ started=true;
+ paused=false;
+ $("overlay").style.display="none";
+ $("status").textContent="战场进行中";
+
+ renderer.domElement.requestPointerLock?.();
+ clock.getDelta();
+ animate();
+}
+
+function pauseGame(){
+ if(!started)return;
+ paused=true;
+ $("overlay").style.display="flex";
+ $("menu").querySelector("h1").textContent="游戏已暂停";
+ $("menu").querySelector(".sub").textContent="点击继续游戏，返回 3D 战场。";
+ $("start").textContent="继续游戏";
+}
+
+function shoot(){
+ if(!started||paused||document.pointerLockElement!==renderer.domElement)return;
+ const now=performance.now();
+ if(now-lastShot<240)return;
+ lastShot=now;
+
+ const direction=new THREE.Vector3();
+ camera.getWorldDirection(direction);
+
+ const orb=new THREE.Mesh(
+  new THREE.SphereGeometry(.16,12,12),
+  new THREE.MeshBasicMaterial({
+   color:0x00eaff
+  })
+ );
+ orb.position.copy(camera.position).addScaledVector(direction,1.2);
+ scene.add(orb);
+
+ const glow=new THREE.PointLight(0x00dfff,1.5,5);
+ orb.add(glow);
+
+ projectiles.push({
+  mesh:orb,
+  direction:direction,
+  life:2.2
+ });
+}
+
+function movePlayer(dt){
+ const forward=new THREE.Vector3(-Math.sin(yaw),0,-Math.cos(yaw));
+ const right=new THREE.Vector3(Math.cos(yaw),0,-Math.sin(yaw));
+ const move=new THREE.Vector3();
+
+ if(keys.KeyW)move.add(forward);
+ if(keys.KeyS)move.sub(forward);
+ if(keys.KeyD)move.add(right);
+ if(keys.KeyA)move.sub(right);
+
+ if(move.lengthSq()>0){
+  move.normalize().multiplyScalar(12*dt);
+  camera.position.add(move);
+ }
+
+ camera.position.x=THREE.MathUtils.clamp(camera.position.x,-105,105);
+ camera.position.z=THREE.MathUtils.clamp(camera.position.z,-105,105);
+
+ if(keys.Space&&onGround){
+  velocityY=8;
+  onGround=false;
+ }
+ velocityY-=20*dt;
+ camera.position.y+=velocityY*dt;
+
+ if(camera.position.y<2){
+  camera.position.y=2;
+  velocityY=0;
+  onGround=true;
+ }
+}
+
+function updateTargets(dt,t){
+ for(const target of targets){
+  if(!target.userData.alive)continue;
+
+  target.position.y=target.userData.baseY+
+   Math.sin(t*2+target.userData.phase)*.7;
+
+  target.rotation.y+=dt*.65;
+  target.rotation.x=Math.sin(t+target.userData.phase)*.12;
+
+  const dx=camera.position.x-target.position.x;
+  const dz=camera.position.z-target.position.z;
+  const dist=Math.hypot(dx,dz);
+
+  if(dist<15){
+   target.position.x-=dx*dt*.18;
+   target.position.z-=dz*dt*.18;
+  }
+ }
+}
+
+function updateProjectiles(dt){
+ for(let i=projectiles.length-1;i>=0;i--){
+  const p=projectiles[i];
+  p.mesh.position.addScaledVector(p.direction,65*dt);
+  p.life-=dt;
+
+  let hit=false;
+  for(const target of targets){
+   if(!target.userData.alive)continue;
+   if(p.mesh.position.distanceTo(target.position)<1.8){
+    target.userData.alive=false;
+    scene.remove(target);
+    score+=100;
+    $("score").textContent=score;
+    $("hitmarker").style.display="block";
+    setTimeout(()=>$("hitmarker").style.display="none",130);
+    hit=true;
+    break;
+   }
+  }
+
+  if(hit||p.life<=0){
+   scene.remove(p.mesh);
+   projectiles.splice(i,1);
+  }
+ }
+}
+
+function updateZone(dt){
+ zoneRadius=Math.max(18,zoneRadius-dt*.17);
+ window.zoneRing.scale.set(zoneRadius,zoneRadius,1);
+
+ const distance=Math.hypot(camera.position.x,camera.position.z);
+ if(distance>zoneRadius){
+  health=Math.max(0,health-dt*4);
+  $("health").textContent=Math.ceil(health);
+  $("message").textContent="注意：你已离开安全区域！";
+ }else{
+  $("message").textContent="";
+ }
+
+ if(health<=0){
+  endGame();
+ }
+}
+
+function updateHUD(){
+ const alive=targets.filter(t=>t.userData.alive).length;
+ $("remaining").textContent=alive;
+ const seconds=Math.floor(elapsed);
+ $("time").textContent=
+  String(Math.floor(seconds/60)).padStart(2,"0")+":"+
+  String(seconds%60).padStart(2,"0");
+}
+
+function endGame(){
+ started=false;
+ paused=true;
+ document.exitPointerLock?.();
+ $("overlay").style.display="flex";
+ $("menu").querySelector("h1").textContent="游戏结束";
+ $("menu").querySelector(".sub").textContent=
+  "最终得分："+score+"。点击按钮重新载入游戏。";
+ $("start").textContent="重新开始";
+ $("start").onclick=()=>location.reload();
+}
+
+let lastFrame=0;
+function animate(){
+ if(!started||paused)return;
+ requestAnimationFrame(animate);
+
+ const dt=Math.min(clock.getDelta(),.04);
+ const t=clock.elapsedTime;
+ elapsed+=dt;
+
+ movePlayer(dt);
+ updateCamera();
+ updateTargets(dt,t);
+ updateProjectiles(dt);
+ updateZone(dt);
+ updateHUD();
+
+ renderer.render(scene,camera);
+}
+
+document.addEventListener("keydown",e=>{
+ keys[e.code]=true;
+ if(e.code==="Space")e.preventDefault();
+});
+document.addEventListener("keyup",e=>keys[e.code]=false);
+
+document.addEventListener("mousemove",e=>{
+ if(document.pointerLockElement!==renderer?.domElement)return;
+ yaw-=e.movementX*.0022;
+ pitch-=e.movementY*.0022;
+ pitch=THREE.MathUtils.clamp(pitch,-1.45,1.45);
+ updateCamera();
+});
+
+document.addEventListener("mousedown",e=>{
+ if(e.button===0)shoot();
+});
+
+document.addEventListener("pointerlockchange",()=>{
+ if(started&&document.pointerLockElement!==renderer.domElement){
+  pauseGame();
+ }
+});
+
+$("start").addEventListener("click",()=>{
+ if(!scene){
+  try{
+   $("loading").textContent="正在创建 3D 世界……";
+   init();
+   $("loading").textContent="3D 场景准备完成";
+  }catch(err){
+   $("loading").textContent="初始化失败："+err.message;
+   console.error(err);
+   return;
+  }
+ }
+ $("menu").querySelector("h1").textContent="BATTLE ROYALE";
+ $("start").textContent="开始游戏";
+ $("start").onclick=null;
+ startGame();
+});
+
+try{
+ init();
+ $("loading").textContent="3D 引擎加载成功，可以开始游戏。";
+}catch(err){
+ $("loading").textContent="3D 初始化失败："+err.message;
+ console.error(err);
+}
+
+})();
+</script>
 </body>
 </html>
